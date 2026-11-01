@@ -1,0 +1,69 @@
+name: url-shortener
+services:
+  db:
+    environment:
+      POSTGRES_DB: urlshortener
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    image: postgres:16-alpine
+    networks:
+      default: null
+    volumes:
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+        volume: {}
+      - type: bind
+        source: C:\Users\_.mose._\Desktop\Nextwork\url-shortener\app\init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+        bind: {}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U postgres
+      timeout: 5s
+      interval: 5s
+      retries: 5
+  redis:
+    image: redis:7-alpine
+    networks:
+      default: null
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      timeout: 5s
+      interval: 5s
+      retries: 5
+  web:
+    environment:
+      POSTGRES_DB: urlshortener
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    networks:
+      default: null
+    build:
+      context: C:\Users\_.mose._\Desktop\Nextwork\url-shortener\app
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    ports:
+      - mode: ingress
+        target: 5000
+        published: "5000"
+        protocol: tcp
+networks:
+  default:
+    name: url-shortener_default
+volumes:
+  postgres_data:
+    name: url-shortener_postgres_data
